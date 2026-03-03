@@ -20,7 +20,7 @@ use openfang_runtime::agent_loop::{
 use openfang_runtime::audit::AuditLog;
 use openfang_runtime::drivers;
 use openfang_runtime::kernel_handle::{self, KernelHandle};
-use openfang_runtime::llm_driver::{CompletionRequest, DriverConfig, LlmDriver, StreamEvent};
+use openfang_runtime::llm_driver::{CompletionRequest, DriverConfig, LlmDriver, LlmError, StreamEvent};
 use openfang_runtime::python_runtime::{self, PythonConfig};
 use openfang_runtime::routing::ModelRouter;
 use openfang_runtime::sandbox::{SandboxConfig, WasmSandbox};
@@ -555,7 +555,10 @@ impl OpenFangKernel {
                 .map_err(|e| KernelError::BootFailed(format!("Memory init failed: {e}")))?,
         );
 
-        // Create LLM driver
+        // Create LLM driver.
+        // If the configured provider is missing its API key we fall back to Ollama
+        // (key_required=false) so the daemon always boots.  The setup wizard will
+        // guide the user through configuring a real provider on first login.
         let driver_config = DriverConfig {
             provider: config.default_model.provider.clone(),
             api_key: std::env::var(&config.default_model.api_key_env).ok(),
@@ -565,8 +568,30 @@ impl OpenFangKernel {
                 .clone()
                 .or_else(|| config.provider_urls.get(&config.default_model.provider).cloned()),
         };
-        let primary_driver = drivers::create_driver(&driver_config)
-            .map_err(|e| KernelError::BootFailed(format!("LLM driver init failed: {e}")))?;
+        let primary_driver = match drivers::create_driver(&driver_config) {
+            Ok(d) => d,
+            Err(LlmError::MissingApiKey(msg)) => {
+                warn!(
+                    provider = %config.default_model.provider,
+                    "LLM provider key not set ({msg}) — falling back to Ollama. \
+                     Configure a provider in the dashboard wizard."
+                );
+                // Reset default_model so the rest of the boot path knows what we
+                // actually loaded (affects logging, /api/config responses, etc.).
+                config.default_model.provider = "ollama".to_string();
+                config.default_model.model = "llama3.2".to_string();
+                config.default_model.api_key_env = "OLLAMA_API_KEY".to_string();
+                config.default_model.base_url = None;
+                let ollama_config = DriverConfig {
+                    provider: "ollama".to_string(),
+                    api_key: None,
+                    base_url: None,
+                };
+                drivers::create_driver(&ollama_config)
+                    .map_err(|e| KernelError::BootFailed(format!("Ollama fallback driver init failed: {e}")))?  
+            }
+            Err(e) => return Err(KernelError::BootFailed(format!("LLM driver init failed: {e}"))),
+        };
 
         // If fallback providers are configured, wrap the primary driver in a FallbackDriver
         let driver: Arc<dyn LlmDriver> = if !config.fallback_providers.is_empty() {

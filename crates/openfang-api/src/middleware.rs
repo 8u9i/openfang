@@ -192,11 +192,24 @@ pub async fn security_headers(request: Request<Body>, next: Next) -> Response<Bo
     headers.insert("x-frame-options", "DENY".parse().unwrap());
     headers.insert("x-xss-protection", "1; mode=block".parse().unwrap());
     // All JS/CSS is bundled inline — only external resource is Google Fonts.
+    // CSP: allow connections and WebSockets to self (covers Railway/custom domains)
+    // plus explicit localhost patterns for local dev.
+    let csp_connect = if let Ok(domain) = std::env::var("RAILWAY_PUBLIC_DOMAIN") {
+        format!(
+            "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; \
+             style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; \
+             img-src 'self' data: blob:; \
+             connect-src 'self' wss://{domain} ws://localhost:* ws://127.0.0.1:* wss://localhost:* wss://127.0.0.1:*; \
+             font-src 'self' https://fonts.gstatic.com; \
+             media-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'",
+            domain = domain
+        )
+    } else {
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' ws://localhost:* ws://127.0.0.1:* wss://localhost:* wss://127.0.0.1:*; font-src 'self' https://fonts.gstatic.com; media-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'".to_string()
+    };
     headers.insert(
         "content-security-policy",
-        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' ws://localhost:* ws://127.0.0.1:* wss://localhost:* wss://127.0.0.1:*; font-src 'self' https://fonts.gstatic.com; media-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
-            .parse()
-            .unwrap(),
+        csp_connect.parse().unwrap_or_else(|_| "default-src 'self'".parse().unwrap()),
     );
     headers.insert(
         "referrer-policy",

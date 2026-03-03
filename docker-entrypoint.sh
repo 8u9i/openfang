@@ -1,4 +1,4 @@
-﻿#!/bin/sh
+#!/bin/sh
 # Railway / Docker entrypoint for OpenFang.
 #
 # Responsibilities:

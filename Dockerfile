@@ -16,7 +16,8 @@ COPY --from=builder /build/agents /opt/openfang/agents
 # Bust Railway's build cache when entrypoint or config changes (bump value to force rebuild).
 ARG CACHE_BUST=1
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN sed -i 's/\r//' /usr/local/bin/docker-entrypoint.sh \
+RUN sed -i '1s/^\xEF\xBB\xBF//' /usr/local/bin/docker-entrypoint.sh \
+    && sed -i 's/\r//' /usr/local/bin/docker-entrypoint.sh \
     && chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # HOME=/data ensures dirs::home_dir() resolves to the mounted Railway volume,

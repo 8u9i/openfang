@@ -2,13 +2,14 @@
 FROM rust:1-slim-bookworm AS builder
 WORKDIR /build
 RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+# Bust the Rust compilation cache (bump RUST_CACHE_BUST in railway.json buildArgs).
+# ARG must appear before source COPY so changed value invalidates subsequent layers.
+ARG RUST_CACHE_BUST=1
 COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
 COPY xtask ./xtask
 COPY agents ./agents
 COPY packages ./packages
-# Bust the Rust compilation cache (bump RUST_CACHE_BUST in railway.json buildArgs).
-ARG RUST_CACHE_BUST=1
 RUN cargo build --release --bin openfang
 
 FROM debian:bookworm-slim

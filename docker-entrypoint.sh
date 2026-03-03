@@ -12,8 +12,12 @@ mkdir -p "${OPENFANG_DIR}/data" "${OPENFANG_DIR}/agents" "${OPENFANG_DIR}/skills
 
 CONFIG="${OPENFANG_DIR}/config.toml"
 if [ ! -f "${CONFIG}" ]; then
-  printf 'api_listen = "%s"\napi_key = "%s"\n' "${LISTEN}" "${OPENFANG_API_KEY:-}" > "${CONFIG}"
+  printf 'api_listen = "%s"\napi_key = "%s"\n\n[default_model]\nprovider = "ollama"\nmodel = "llama3.2"\napi_key_env = "OLLAMA_API_KEY"\n' \
+    "${LISTEN}" "${OPENFANG_API_KEY:-}" > "${CONFIG}"
   echo "[entrypoint] Bootstrap config written to ${CONFIG}"
+elif ! grep -q '^\[default_model\]' "${CONFIG}"; then
+  printf '\n[default_model]\nprovider = "ollama"\nmodel = "llama3.2"\napi_key_env = "OLLAMA_API_KEY"\n' >> "${CONFIG}"
+  echo "[entrypoint] Added missing [default_model] to ${CONFIG}"
 fi
 
 AGENTS_SRC=/opt/openfang/agents

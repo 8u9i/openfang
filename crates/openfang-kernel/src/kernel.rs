@@ -499,6 +499,25 @@ impl OpenFangKernel {
                 config.api_key = key;
             }
         }
+        // OPENFANG_PROVIDER / OPENFANG_MODEL / OPENFANG_MODEL_KEY_ENV let Railway
+        // (or any Docker deployment) override the default LLM provider without
+        // touching the config.toml on the persistent volume.  The entrypoint
+        // auto-detects whichever provider key the user has set and exports these.
+        if let Ok(provider) = std::env::var("OPENFANG_PROVIDER") {
+            if !provider.is_empty() {
+                config.default_model.provider = provider;
+            }
+        }
+        if let Ok(model) = std::env::var("OPENFANG_MODEL") {
+            if !model.is_empty() {
+                config.default_model.model = model;
+            }
+        }
+        if let Ok(key_env) = std::env::var("OPENFANG_MODEL_KEY_ENV") {
+            if !key_env.is_empty() {
+                config.default_model.api_key_env = key_env;
+            }
+        }
 
         // Clamp configuration bounds to prevent zero-value or unbounded misconfigs
         config.clamp_bounds();

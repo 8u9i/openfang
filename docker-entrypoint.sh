@@ -15,6 +15,46 @@ set -e
 LISTEN="${OPENFANG_LISTEN:-0.0.0.0:${PORT:-4200}}"
 export OPENFANG_LISTEN="${LISTEN}"
 
+# -- 2. Auto-detect default LLM provider from available API keys ----------------
+# OPENFANG_PROVIDER/MODEL/MODEL_KEY_ENV are read by the kernel at boot and override
+# whatever provider is stored in config.toml on the volume. This means the service
+# always starts even if the volume has a stale or unconfigured provider.
+if [ -z "${OPENFANG_PROVIDER:-}" ]; then
+  if [ -n "${GROQ_API_KEY:-}" ]; then
+    export OPENFANG_PROVIDER=groq
+    export OPENFANG_MODEL="${OPENFANG_MODEL:-llama-3.3-70b-versatile}"
+    export OPENFANG_MODEL_KEY_ENV=GROQ_API_KEY
+  elif [ -n "${OPENAI_API_KEY:-}" ]; then
+    export OPENFANG_PROVIDER=openai
+    export OPENFANG_MODEL="${OPENFANG_MODEL:-gpt-4o-mini}"
+    export OPENFANG_MODEL_KEY_ENV=OPENAI_API_KEY
+  elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+    export OPENFANG_PROVIDER=anthropic
+    export OPENFANG_MODEL="${OPENFANG_MODEL:-claude-haiku-4-20250514}"
+    export OPENFANG_MODEL_KEY_ENV=ANTHROPIC_API_KEY
+  elif [ -n "${DEEPSEEK_API_KEY:-}" ]; then
+    export OPENFANG_PROVIDER=deepseek
+    export OPENFANG_MODEL="${OPENFANG_MODEL:-deepseek-chat}"
+    export OPENFANG_MODEL_KEY_ENV=DEEPSEEK_API_KEY
+  elif [ -n "${OPENROUTER_API_KEY:-}" ]; then
+    export OPENFANG_PROVIDER=openrouter
+    export OPENFANG_MODEL="${OPENFANG_MODEL:-openai/gpt-4o-mini}"
+    export OPENFANG_MODEL_KEY_ENV=OPENROUTER_API_KEY
+  elif [ -n "${GEMINI_API_KEY:-}" ] || [ -n "${GOOGLE_API_KEY:-}" ]; then
+    export OPENFANG_PROVIDER=gemini
+    export OPENFANG_MODEL="${OPENFANG_MODEL:-gemini-2.5-flash}"
+    export OPENFANG_MODEL_KEY_ENV="${GEMINI_API_KEY:+GEMINI_API_KEY}${GEMINI_API_KEY:-GOOGLE_API_KEY}"
+  else
+    # No cloud provider key set - fall back to Ollama (key_required=false, always boots).
+    # Configure a real provider in the dashboard UI after first boot.
+    export OPENFANG_PROVIDER=ollama
+    export OPENFANG_MODEL="${OPENFANG_MODEL:-llama3.2}"
+    export OPENFANG_MODEL_KEY_ENV=OLLAMA_API_KEY
+    echo "[entrypoint] No LLM API key detected - defaulting to Ollama. Set GROQ_API_KEY or another provider key in Railway Variables."
+  fi
+  echo "[entrypoint] Provider: ${OPENFANG_PROVIDER} / ${OPENFANG_MODEL}"
+fi
+
 # â”€â”€ 2. Ensure home / data directories exist â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # HOME is set to /data in the Dockerfile so dirs::home_dir() returns /data.
 # Config lives at /data/.openfang/config.toml â€” on the mounted Railway volume.

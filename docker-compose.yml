@@ -1,25 +1,86 @@
-# NOTE: The GHCR image (ghcr.io/rightnow-ai/openfang) is not yet public.
-# For now, build from source using `docker compose up --build`.
-# See: https://github.com/RightNow-AI/openfang/issues/12
+# Railway-ready docker-compose.yml
+#
+# On Railway:
+#   - Set OPENFANG_LISTEN=0.0.0.0:${{PORT}} in Railway Variables (Railway injects PORT).
+#   - Add a Railway Volume mounted at /data.
+#   - Set at least one LLM provider key (e.g. GROQ_API_KEY).
+#   - All other variables are optional — set only the ones you need.
+#
+# Locally:
+#   cp .env.example .env   # fill in your keys
+#   docker compose up --build
 
-version: "3.8"
 services:
   openfang:
     build: .
-    # image: ghcr.io/rightnow-ai/openfang:latest  # Uncomment when GHCR is public
+    # image: ghcr.io/rightnow-ai/openfang:latest  # Uncomment when GHCR image is public
     ports:
-      - "4200:4200"
+      - "${PORT:-4200}:${PORT:-4200}"
     volumes:
       - openfang-data:/data
     environment:
+      # ── Core ──────────────────────────────────────────────────────────
+      # On Railway set this to: 0.0.0.0:${{PORT}}
+      # Locally defaults to 0.0.0.0:4200
+      - OPENFANG_LISTEN=${OPENFANG_LISTEN:-0.0.0.0:${PORT:-4200}}
+      - OPENFANG_HOME=${OPENFANG_HOME:-/data}
+      - OPENFANG_API_KEY=${OPENFANG_API_KEY:-}
+
+      # ── Logging ───────────────────────────────────────────────────────
+      - RUST_LOG=${RUST_LOG:-info}
+
+      # ── LLM Provider API Keys (set at least one) ──────────────────────
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - TOGETHER_API_KEY=${TOGETHER_API_KEY:-}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      - FIREWORKS_API_KEY=${FIREWORKS_API_KEY:-}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY:-}
+
+      # ── Local LLM Provider URLs (no key needed) ───────────────────────
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-}
+      - VLLM_BASE_URL=${VLLM_BASE_URL:-}
+      - LMSTUDIO_BASE_URL=${LMSTUDIO_BASE_URL:-}
+
+      # ── Web Search ────────────────────────────────────────────────────
+      - BRAVE_API_KEY=${BRAVE_API_KEY:-}
+      - TAVILY_API_KEY=${TAVILY_API_KEY:-}
+
+      # ── Channel Tokens ────────────────────────────────────────────────
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
       - SLACK_APP_TOKEN=${SLACK_APP_TOKEN:-}
-    restart: unless-stopped
+      - WHATSAPP_TOKEN=${WHATSAPP_TOKEN:-}
+      - WHATSAPP_PHONE_ID=${WHATSAPP_PHONE_ID:-}
+      - SIGNAL_CLI_PATH=${SIGNAL_CLI_PATH:-}
+      - SIGNAL_PHONE_NUMBER=${SIGNAL_PHONE_NUMBER:-}
+      - MATRIX_HOMESERVER=${MATRIX_HOMESERVER:-}
+      - MATRIX_ACCESS_TOKEN=${MATRIX_ACCESS_TOKEN:-}
+      - EMAIL_IMAP_HOST=${EMAIL_IMAP_HOST:-}
+      - EMAIL_SMTP_HOST=${EMAIL_SMTP_HOST:-}
+      - EMAIL_USERNAME=${EMAIL_USERNAME:-}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD:-}
+      - TEAMS_APP_PASSWORD=${TEAMS_APP_PASSWORD:-}
+      - MATTERMOST_TOKEN=${MATTERMOST_TOKEN:-}
+      - TWITCH_OAUTH_TOKEN=${TWITCH_OAUTH_TOKEN:-}
+      - DINGTALK_ACCESS_TOKEN=${DINGTALK_ACCESS_TOKEN:-}
+      - DINGTALK_SECRET=${DINGTALK_SECRET:-}
+      - GOOGLE_CHAT_SERVICE_ACCOUNT=${GOOGLE_CHAT_SERVICE_ACCOUNT:-}
+      - ROCKETCHAT_TOKEN=${ROCKETCHAT_TOKEN:-}
+      - ZULIP_API_KEY=${ZULIP_API_KEY:-}
+
+    healthcheck:
+      test: ["CMD", "openfang", "doctor", "--json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
 volumes:
   openfang-data:

@@ -1329,10 +1329,13 @@ pub struct DefaultModelConfig {
 
 impl Default for DefaultModelConfig {
     fn default() -> Self {
+        // Default to Ollama so the daemon boots with zero configuration —
+        // no API key is required. The setup wizard guides the user through
+        // picking a real provider on first login.
         Self {
-            provider: "anthropic".to_string(),
-            model: "claude-sonnet-4-20250514".to_string(),
-            api_key_env: "ANTHROPIC_API_KEY".to_string(),
+            provider: "ollama".to_string(),
+            model: "llama3.2".to_string(),
+            api_key_env: "OLLAMA_API_KEY".to_string(),
             base_url: None,
         }
     }

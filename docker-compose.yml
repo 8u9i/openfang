@@ -2,12 +2,13 @@
 #
 # Railway deployment (Dockerfile mode — recommended):
 #   Railway builds via the Dockerfile and injects PORT automatically.
-#   The entrypoint derives OPENFANG_LISTEN from PORT — no manual wiring needed.
+#   The entrypoint derives the listen address from PORT — no manual wiring needed.
 #   Add a Volume mounted at /data in Railway service settings.
-#   Set at least one LLM key (e.g. GROQ_API_KEY) in Railway Variables.
+#   The only Railway Variable you need to set is OPENFANG_API_KEY (to secure the dashboard).
+#   Configure your LLM provider, channel tokens, and all other settings in the dashboard UI.
 #
 # Railway compose-import mode (drag-and-drop onto canvas):
-#   Railway will create a service and import the variables below as Railway Variables.
+#   Railway will create a service and import the variables below. Only OPENFANG_API_KEY is needed.
 #
 # Local development:
 #   cp .env.example .env && docker compose up --build

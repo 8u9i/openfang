@@ -487,9 +487,17 @@ impl OpenFangKernel {
     pub fn boot_with_config(mut config: KernelConfig) -> KernelResult<Self> {
         use openfang_types::config::KernelMode;
 
-        // Env var overrides — useful for Docker where config.toml is baked in.
+        // Env var overrides — useful for Docker/Railway where config.toml may be
+        // on a persistent volume that was created before these settings existed.
         if let Ok(listen) = std::env::var("OPENFANG_LISTEN") {
             config.api_listen = listen;
+        }
+        // OPENFANG_API_KEY always wins over config.toml — lets Railway deployments
+        // set the API key via an environment variable without touching the volume.
+        if let Ok(key) = std::env::var("OPENFANG_API_KEY") {
+            if !key.is_empty() {
+                config.api_key = key;
+            }
         }
 
         // Clamp configuration bounds to prevent zero-value or unbounded misconfigs

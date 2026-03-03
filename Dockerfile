@@ -7,6 +7,8 @@ COPY crates ./crates
 COPY xtask ./xtask
 COPY agents ./agents
 COPY packages ./packages
+# Bust the Rust compilation cache (bump RUST_CACHE_BUST in railway.json buildArgs).
+ARG RUST_CACHE_BUST=1
 RUN cargo build --release --bin openfang
 
 FROM debian:bookworm-slim

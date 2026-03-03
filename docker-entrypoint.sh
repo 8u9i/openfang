@@ -33,6 +33,7 @@ if [ ! -f "${CONFIG}" ]; then
 #
 # api_listen is overridden at runtime by the OPENFANG_LISTEN environment variable.
 api_listen = "${LISTEN}"
+api_key = "${OPENFANG_API_KEY:-}"
 
 [default_model]
 # Set your preferred provider and model. The API key is read from the env var below.

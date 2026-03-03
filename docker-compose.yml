@@ -21,10 +21,6 @@ services:
     volumes:
       - openfang-data:/data
     environment:
-      # ── Railway-injected (do not set manually in Railway Variables) ────
-      # Railway always injects PORT. The entrypoint sets OPENFANG_LISTEN from it.
-      - PORT=${PORT:-4200}
-
       # ── Core ──────────────────────────────────────────────────────────
       - OPENFANG_HOME=/data
       - OPENFANG_API_KEY=${OPENFANG_API_KEY:-}

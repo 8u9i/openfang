@@ -46,6 +46,8 @@ if [ -d "${AGENTS_SRC}" ] && [ -z "$(ls -A "${AGENTS_DST}" 2>/dev/null)" ]; then
   cp -r "${AGENTS_SRC}/." "${AGENTS_DST}/"
 fi
 
-echo "[entrypoint] Starting OpenFang â€” listening on ${LISTEN}"if [ -n "${RAILWAY_PUBLIC_DOMAIN:-}" ]; then
+echo "[entrypoint] Starting OpenFang — listening on ${LISTEN}"
+if [ -n "${RAILWAY_PUBLIC_DOMAIN:-}" ]; then
   echo "[entrypoint] Railway dashboard: https://${RAILWAY_PUBLIC_DOMAIN}/"
-fiexec openfang start
+fi
+exec openfang start

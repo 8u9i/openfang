@@ -4,7 +4,9 @@ WORKDIR /build
 RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
 # Bust the Rust compilation cache (bump RUST_CACHE_BUST in railway.json buildArgs).
 # ARG must appear before source COPY so changed value invalidates subsequent layers.
+# The RUN echo must reference the ARG — otherwise Docker ignores the value change.
 ARG RUST_CACHE_BUST=1
+RUN echo "cache-bust=${RUST_CACHE_BUST}"
 COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
 COPY xtask ./xtask

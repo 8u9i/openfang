@@ -4,8 +4,8 @@
     "builder": "DOCKERFILE",
     "dockerfilePath": "Dockerfile",
     "buildArgs": {
-      "CACHE_BUST": "14",
-      "RUST_CACHE_BUST": "5"
+      "CACHE_BUST": "15",
+      "RUST_CACHE_BUST": "6"
     }
   },
   "deploy": {

@@ -1,0 +1,5 @@
+# Ensure shell scripts always use LF so shebangs work inside Linux containers
+*.sh text eol=lf
+
+# Default everything else to auto
+* text=auto

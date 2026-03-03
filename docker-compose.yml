@@ -76,11 +76,17 @@ services:
       - ZULIP_API_KEY=${ZULIP_API_KEY:-}
 
     healthcheck:
-      test: ["CMD", "openfang", "doctor", "--json"]
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "openfang status --json 2>/dev/null | grep -q running || wget -qO- http://localhost:${PORT:-4200}/api/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 15s
+      start_period: 20s
 
 volumes:
   openfang-data:

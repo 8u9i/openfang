@@ -10,10 +10,18 @@ COPY packages ./packages
 RUN cargo build --release --bin openfang
 
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ca-certificates wget && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /build/target/release/openfang /usr/local/bin/
 COPY --from=builder /build/agents /opt/openfang/agents
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# HOME=/data ensures dirs::home_dir() resolves to the mounted Railway volume,
+# so config.toml and SQLite databases land on persistent storage at /data/.openfang/.
+# OPENFANG_LISTEN is read by the kernel at boot and overrides api_listen in config.
+# PORT is injected by Railway; the entrypoint derives OPENFANG_LISTEN from it.
+ENV HOME=/data \
+    OPENFANG_HOME=/data
+
 EXPOSE 4200
-ENV OPENFANG_HOME=/data
-ENTRYPOINT ["openfang"]
-CMD ["start"]
+ENTRYPOINT ["docker-entrypoint.sh"]

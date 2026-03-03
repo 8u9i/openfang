@@ -15,6 +15,8 @@ COPY --from=builder /build/target/release/openfang /usr/local/bin/
 COPY --from=builder /build/agents /opt/openfang/agents
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Bust Railway's build cache when entrypoint or config changes.
+ARG CACHE_BUST=1
 
 # HOME=/data ensures dirs::home_dir() resolves to the mounted Railway volume,
 # so config.toml and SQLite databases land on persistent storage at /data/.openfang/.

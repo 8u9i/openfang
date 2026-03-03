@@ -1,35 +1,36 @@
-# Railway-ready docker-compose.yml
+# OpenFang — Railway-ready Compose file
 #
-# On Railway:
-#   - Set OPENFANG_LISTEN=0.0.0.0:${{PORT}} in Railway Variables (Railway injects PORT).
-#   - Add a Railway Volume mounted at /data.
-#   - Set at least one LLM provider key (e.g. GROQ_API_KEY).
-#   - All other variables are optional — set only the ones you need.
+# Railway deployment (Dockerfile mode — recommended):
+#   Railway builds via the Dockerfile and injects PORT automatically.
+#   The entrypoint derives OPENFANG_LISTEN from PORT — no manual wiring needed.
+#   Add a Volume mounted at /data in Railway service settings.
+#   Set at least one LLM key (e.g. GROQ_API_KEY) in Railway Variables.
 #
-# Locally:
-#   cp .env.example .env   # fill in your keys
-#   docker compose up --build
+# Railway compose-import mode (drag-and-drop onto canvas):
+#   Railway will create a service and import the variables below as Railway Variables.
+#
+# Local development:
+#   cp .env.example .env && docker compose up --build
 
 services:
   openfang:
     build: .
-    # image: ghcr.io/rightnow-ai/openfang:latest  # Uncomment when GHCR image is public
+    # image: ghcr.io/rightnow-ai/openfang:latest  # Uncomment once GHCR image is public
     ports:
       - "${PORT:-4200}:${PORT:-4200}"
     volumes:
       - openfang-data:/data
     environment:
-      # ── Core ──────────────────────────────────────────────────────────
-      # On Railway set this to: 0.0.0.0:${{PORT}}
-      # Locally defaults to 0.0.0.0:4200
-      - OPENFANG_LISTEN=${OPENFANG_LISTEN:-0.0.0.0:${PORT:-4200}}
-      - OPENFANG_HOME=${OPENFANG_HOME:-/data}
-      - OPENFANG_API_KEY=${OPENFANG_API_KEY:-}
+      # ── Railway-injected (do not set manually in Railway Variables) ────
+      # Railway always injects PORT. The entrypoint sets OPENFANG_LISTEN from it.
+      - PORT=${PORT:-4200}
 
-      # ── Logging ───────────────────────────────────────────────────────
+      # ── Core ──────────────────────────────────────────────────────────
+      - OPENFANG_HOME=/data
+      - OPENFANG_API_KEY=${OPENFANG_API_KEY:-}
       - RUST_LOG=${RUST_LOG:-info}
 
-      # ── LLM Provider API Keys (set at least one) ──────────────────────
+      # ── LLM Provider API Keys — set at least one ──────────────────────
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - GROQ_API_KEY=${GROQ_API_KEY:-}
@@ -42,23 +43,22 @@ services:
       - FIREWORKS_API_KEY=${FIREWORKS_API_KEY:-}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY:-}
 
-      # ── Local LLM Provider URLs (no key needed) ───────────────────────
+      # ── Ollama sidecar (Railway private network) ──────────────────────
+      # Add an Ollama service to your Railway project, then set:
+      #   OLLAMA_BASE_URL=http://${{ollama.RAILWAY_PRIVATE_DOMAIN}}:11434
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-}
-      - VLLM_BASE_URL=${VLLM_BASE_URL:-}
-      - LMSTUDIO_BASE_URL=${LMSTUDIO_BASE_URL:-}
 
       # ── Web Search ────────────────────────────────────────────────────
       - BRAVE_API_KEY=${BRAVE_API_KEY:-}
       - TAVILY_API_KEY=${TAVILY_API_KEY:-}
 
-      # ── Channel Tokens ────────────────────────────────────────────────
+      # ── Channel Tokens — enable only what you use ─────────────────────
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
       - SLACK_APP_TOKEN=${SLACK_APP_TOKEN:-}
       - WHATSAPP_TOKEN=${WHATSAPP_TOKEN:-}
       - WHATSAPP_PHONE_ID=${WHATSAPP_PHONE_ID:-}
-      - SIGNAL_CLI_PATH=${SIGNAL_CLI_PATH:-}
       - SIGNAL_PHONE_NUMBER=${SIGNAL_PHONE_NUMBER:-}
       - MATRIX_HOMESERVER=${MATRIX_HOMESERVER:-}
       - MATRIX_ACCESS_TOKEN=${MATRIX_ACCESS_TOKEN:-}
@@ -76,16 +76,11 @@ services:
       - ZULIP_API_KEY=${ZULIP_API_KEY:-}
 
     healthcheck:
-      test:
-        [
-          "CMD",
-          "sh",
-          "-c",
-          "openfang status --json 2>/dev/null | grep -q running || wget -qO- http://localhost:${PORT:-4200}/api/health",
-        ]
+      # Railway healthchecks use HTTP against PORT/api/health — this mirrors that locally.
+      test: ["CMD", "wget", "-qO-", "http://localhost:${PORT:-4200}/api/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
       start_period: 20s
 
 volumes:

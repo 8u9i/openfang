@@ -14,16 +14,16 @@ RUN cargo build --release --bin openfang
 
 FROM debian:bookworm-slim
 
-# ✅ Critical: Add runtime libraries for dynamically-linked binary
+# Install runtime dependencies (comments on separate lines)
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     wget \
-    libssl3 \          # OpenSSL runtime
-    libgcc-s1 \        # GCC runtime support
+    libssl3 \
+    libgcc-s1 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# ✅ Create /data BEFORE copying files (avoid permission issues)
+# Create persistent data directory
 RUN mkdir -p /data/.openfang && chmod 755 /data
 
 COPY --from=builder /build/target/release/openfang /usr/local/bin/
@@ -41,7 +41,7 @@ ENV HOME=/data \
 
 EXPOSE 4200
 
-# ✅ Optional: Explicit healthcheck for debugging
+# Optional healthcheck for debugging
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:4200/api/health || exit 1
 

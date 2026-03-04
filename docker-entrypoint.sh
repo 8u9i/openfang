@@ -1,14 +1,18 @@
 #!/bin/sh
 # Railway / Docker entrypoint for OpenFang.
 # Resolves the listen address and bootstraps a minimal config on first boot.
-# LLM provider and all other settings are configured in the dashboard UI.
 set -e
 
-LISTEN="${OPENFANG_LISTEN:-0.0.0.0:${PORT:-4200}}"
+# ✅ Fix: Expand PORT first, then LISTEN (POSIX-compliant)
+PORT="${PORT:-4200}"
+export PORT
+LISTEN="${OPENFANG_LISTEN:-0.0.0.0:${PORT}}"
 export OPENFANG_LISTEN="${LISTEN}"
 
+# Ensure persistent data directory exists and is writable
 OPENFANG_DIR="${HOME:-/data}/.openfang"
 mkdir -p "${OPENFANG_DIR}/data" "${OPENFANG_DIR}/agents" "${OPENFANG_DIR}/skills"
+chmod -R 755 "${OPENFANG_DIR}" 2>/dev/null || true
 
 CONFIG="${OPENFANG_DIR}/config.toml"
 if [ ! -f "${CONFIG}" ]; then
@@ -31,4 +35,7 @@ echo "[entrypoint] Starting OpenFang - listening on ${LISTEN}"
 if [ -n "${RAILWAY_PUBLIC_DOMAIN:-}" ]; then
   echo "[entrypoint] Dashboard: https://${RAILWAY_PUBLIC_DOMAIN}/"
 fi
+
+# ✅ Use exec to replace shell process (proper signal handling)
 exec openfang start
+

@@ -1,0 +1,75 @@
+# Railway Dockerfile for OpenFang
+# Multi-stage build for optimized image size
+
+# Build stage
+FROM rust:1-slim-bookworm AS builder
+WORKDIR /build
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy workspace files
+COPY Cargo.toml Cargo.lock ./
+COPY rust-toolchain.toml ./
+
+# Create skeleton directories for dependencies
+RUN mkdir -p crates xtask agents packages
+
+# Build all dependencies first (cache layer)
+RUN cargo build --release --bin openfang || true
+
+# Copy source code and build
+COPY crates ./crates
+COPY xtask ./xtask
+COPY agents ./agents
+COPY packages ./packages
+COPY sdk ./sdk
+
+# Build the binary
+RUN cargo build --release --bin openfang
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN useradd -m -u 1000 openfang
+
+# Copy binary from builder
+COPY --from=builder /build/target/release/openfang /usr/local/bin/
+
+# Copy agents directory
+COPY --from=builder /build/agents /opt/openfang/agents
+
+# Create data directory
+RUN mkdir -p /data && chown -R openfang:openfang /data
+
+# Set working directory
+WORKDIR /data
+
+# Expose API port
+EXPOSE 4200
+
+# Set environment variables
+ENV OPENFANG_HOME=/data
+ENV RUST_LOG=info
+
+# Switch to non-root user
+USER openfang
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:4200/api/health || exit 1
+
+# Default command - starts the daemon
+# App will run without API keys - users can configure them in the UI later
+CMD ["openfang", "start"]
+

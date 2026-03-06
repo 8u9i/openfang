@@ -1,36 +1,13 @@
-# TODO: Fix Dockerfile.railway for Railway Deployment
+# OpenFang Build Fix Tasks
 
-## Information Gathered:
+## Current Issues
 
-- `Dockerfile.railway` is a multi-stage Docker build for deploying OpenFang on Railway
-- The main `Dockerfile` works correctly and has good patterns to follow
-- `docker-entrypoint.sh` provides config bootstrapping and proper signal handling
-- Railway deployment uses `railway.json` for configuration
+- Compilation error in openfang-kernel: use of moved value `def`
+- Warning: unused mutable variable `hand_registry`
 
-## Plan: Fix Dockerfile.railway
+## Tasks
 
-### Step 1: Update Dockerfile.railway ✅ COMPLETED
-
-- Added syntax directive (`# syntax=docker/dockerfile:1`)
-- Added ARG for cache busting (`RUST_CACHE_BUST`, `CACHE_BUST`)
-- Added missing runtime dependencies (`wget`, `libssl3`, `libgcc-s1`)
-- Added `docker-entrypoint.sh` copy and processing (BOM removal, line ending fix)
-- Changed to use `ENTRYPOINT` instead of raw `CMD`
-- Fixed health check to use `wget` instead of `curl`
-- Added proper `HOME` and `PORT` environment variables
-- Changed directory creation to `/data/.openfang` with proper permissions
-- Added `apt-get clean` for smaller image size
-
-### Step 2: Verify Changes ✅ COMPLETED
-
-- All patterns match the working main Dockerfile
-- Railway health check compatibility verified
-
-## Dependent Files Edited:
-
-- `Dockerfile.railway` - Main file fixed
-
-## Followup Steps:
-
-- No installation/testing needed as this is a configuration file fix
-- User should test deployment on Railway after the fix
+- [x] Analyze the error - identified 2 issues in kernel.rs
+- [ ] Fix issue 1: Use `.as_ref()` for def variable (lines 5066-5068)
+- [ ] Fix issue 2: Remove unnecessary `mut` from hand_registry (line 710)
+- [ ] Verify compilation succeeds

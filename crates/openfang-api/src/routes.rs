@@ -3615,9 +3615,20 @@ pub async fn install_hand_deps(
             cmd.to_string()
         };
 
-        // For winget on Windows, add --accept flags to avoid interactive prompts
+        // For winget on Windows, add --accept flags to avoid interactive prompts.
+        // For apt on Linux, prepend `apt-get update` because slim Docker/Railway images
+        // run `rm -rf /var/lib/apt/lists/*` at build time, leaving an empty package cache.
         let final_cmd = if cfg!(windows) && cmd_effective.starts_with("winget ") {
             format!("{cmd_effective} --accept-source-agreements --accept-package-agreements")
+        } else if !cfg!(windows)
+            && (cmd_effective.starts_with("apt install ")
+                || cmd_effective.starts_with("apt-get install "))
+        {
+            // Normalize `apt install` → `apt-get install -y` and prepend update.
+            let normalized = cmd_effective
+                .replace("apt install ", "apt-get install -y ")
+                .replace("apt-get install ", "apt-get install -y ");
+            format!("apt-get update -qq && {normalized}")
         } else {
             cmd_effective
         };

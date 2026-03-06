@@ -3,7 +3,7 @@
 This guide covers migrating from OpenClaw (and other frameworks) to OpenFang. The migration engine handles config conversion, agent import, memory transfer, channel re-configuration, and skill scanning.
 
 ## Table of Contents
-
+t
 - [Quick Migration](#quick-migration)
 - [What Gets Migrated](#what-gets-migrated)
 - [Manual Migration Steps](#manual-migration-steps)

@@ -1523,6 +1523,8 @@ fn force_kill_pid(pid: u32) {
 
 /// Show context-aware error for kernel boot failures.
 fn boot_kernel_error(e: &openfang_kernel::error::KernelError) {
+    // Always print the raw error first so Railway logs show the real cause.
+    eprintln!("[openfang] BOOT ERROR (raw): {e:?}");
     let msg = e.to_string();
     if msg.contains("parse") || msg.contains("toml") || msg.contains("config") {
         ui::error_with_fix(

@@ -1,25 +1,84 @@
-# NOTE: The GHCR image (ghcr.io/rightnow-ai/openfang) is not yet public.
-# For now, build from source using `docker compose up --build`.
-# See: https://github.com/RightNow-AI/openfang/issues/12
+# OpenFang — Railway-ready Compose file
+#
+# Railway deployment (Dockerfile mode — recommended):
+#   Railway builds via the Dockerfile and injects PORT automatically.
+#   The entrypoint derives the listen address from PORT — no manual wiring needed.
+#   Add a Volume mounted at /data in Railway service settings.
+#   The only Railway Variable you need to set is OPENFANG_API_KEY (to secure the dashboard).
+#   Configure your LLM provider, channel tokens, and all other settings in the dashboard UI.
+#
+# Railway compose-import mode (drag-and-drop onto canvas):
+#   Railway will create a service and import the variables below. Only OPENFANG_API_KEY is needed.
+#
+# Local development:
+#   cp .env.example .env && docker compose up --build
 
-version: "3.8"
 services:
   openfang:
     build: .
-    # image: ghcr.io/rightnow-ai/openfang:latest  # Uncomment when GHCR is public
+    # image: ghcr.io/rightnow-ai/openfang:latest  # Uncomment once GHCR image is public
     ports:
-      - "4200:4200"
+      - "${PORT:-4200}:${PORT:-4200}"
     volumes:
       - openfang-data:/data
     environment:
+      # ── Core ──────────────────────────────────────────────────────────
+      - OPENFANG_HOME=/data
+      - OPENFANG_API_KEY=${OPENFANG_API_KEY:-}
+      - RUST_LOG=${RUST_LOG:-info}
+
+      # ── LLM Provider API Keys — set at least one ──────────────────────
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - TOGETHER_API_KEY=${TOGETHER_API_KEY:-}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      - FIREWORKS_API_KEY=${FIREWORKS_API_KEY:-}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY:-}
+
+      # ── Ollama sidecar (Railway private network) ──────────────────────
+      # Add an Ollama service to your Railway project, then set:
+      #   OLLAMA_BASE_URL=http://${{ollama.RAILWAY_PRIVATE_DOMAIN}}:11434
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-}
+
+      # ── Web Search ────────────────────────────────────────────────────
+      - BRAVE_API_KEY=${BRAVE_API_KEY:-}
+      - TAVILY_API_KEY=${TAVILY_API_KEY:-}
+
+      # ── Channel Tokens — enable only what you use ─────────────────────
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
       - SLACK_APP_TOKEN=${SLACK_APP_TOKEN:-}
-    restart: unless-stopped
+      - WHATSAPP_TOKEN=${WHATSAPP_TOKEN:-}
+      - WHATSAPP_PHONE_ID=${WHATSAPP_PHONE_ID:-}
+      - SIGNAL_PHONE_NUMBER=${SIGNAL_PHONE_NUMBER:-}
+      - MATRIX_HOMESERVER=${MATRIX_HOMESERVER:-}
+      - MATRIX_ACCESS_TOKEN=${MATRIX_ACCESS_TOKEN:-}
+      - EMAIL_IMAP_HOST=${EMAIL_IMAP_HOST:-}
+      - EMAIL_SMTP_HOST=${EMAIL_SMTP_HOST:-}
+      - EMAIL_USERNAME=${EMAIL_USERNAME:-}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD:-}
+      - TEAMS_APP_PASSWORD=${TEAMS_APP_PASSWORD:-}
+      - MATTERMOST_TOKEN=${MATTERMOST_TOKEN:-}
+      - TWITCH_OAUTH_TOKEN=${TWITCH_OAUTH_TOKEN:-}
+      - DINGTALK_ACCESS_TOKEN=${DINGTALK_ACCESS_TOKEN:-}
+      - DINGTALK_SECRET=${DINGTALK_SECRET:-}
+      - GOOGLE_CHAT_SERVICE_ACCOUNT=${GOOGLE_CHAT_SERVICE_ACCOUNT:-}
+      - ROCKETCHAT_TOKEN=${ROCKETCHAT_TOKEN:-}
+      - ZULIP_API_KEY=${ZULIP_API_KEY:-}
+
+    healthcheck:
+      # Railway healthchecks use HTTP against PORT/api/health — this mirrors that locally.
+      test: ["CMD", "wget", "-qO-", "http://localhost:${PORT:-4200}/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
 
 volumes:
   openfang-data:

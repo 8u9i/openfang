@@ -3688,7 +3688,7 @@ impl OpenFangKernel {
     }
 
     /// Start the background loop / register triggers for a single agent.
-    fn start_background_for_agent(
+    pub fn start_background_for_agent(
         self: &Arc<Self>,
         agent_id: AgentId,
         name: &str,
@@ -4648,7 +4648,7 @@ fn infer_provider_from_model(model: &str) -> Option<String> {
 
 /// A well-known agent ID used for shared memory operations across agents.
 /// This is a fixed UUID so all agents read/write to the same namespace.
-fn shared_memory_agent_id() -> AgentId {
+pub fn shared_memory_agent_id() -> AgentId {
     AgentId(uuid::Uuid::from_bytes([
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x01,

@@ -72,6 +72,16 @@ pub async fn build_router(
                 }
             }
         }
+        // Railway: allow the public domain for cross-origin browser clients
+        // (e.g. a separate frontend service on a different *.up.railway.app subdomain).
+        if let Ok(domain) = std::env::var("RAILWAY_PUBLIC_DOMAIN") {
+            if let Ok(v) = format!("https://{domain}").parse() {
+                origins.push(v);
+            }
+            if let Ok(v) = format!("http://{domain}").parse() {
+                origins.push(v);
+            }
+        }
         CorsLayer::new()
             .allow_origin(origins)
             .allow_methods(tower_http::cors::Any)

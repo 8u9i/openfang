@@ -26,7 +26,6 @@ COPY crates ./crates
 COPY xtask ./xtask
 COPY agents ./agents
 COPY packages ./packages
-COPY sdk ./sdk
 
 # Build the binary
 RUN cargo build --release --bin openfang

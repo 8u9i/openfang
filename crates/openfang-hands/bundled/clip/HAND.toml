@@ -50,7 +50,7 @@ windows = "winget install yt-dlp.yt-dlp"
 linux_apt = "sudo apt install yt-dlp"
 linux_dnf = "sudo dnf install yt-dlp"
 linux_pacman = "sudo pacman -S yt-dlp"
-pip = "pip install yt-dlp"
+pip = "pip install yt-dlp --break-system-packages"
 manual_url = "https://github.com/yt-dlp/yt-dlp#installation"
 estimated_time = "1-2 min"
 

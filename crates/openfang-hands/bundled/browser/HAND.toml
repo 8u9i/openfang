@@ -39,8 +39,8 @@ description = "Playwright is a browser automation framework. After installing vi
 [requires.install]
 macos = "pip3 install playwright && playwright install chromium"
 windows = "pip install playwright && playwright install chromium"
-linux_apt = "apt-get update -qq && pip3 install playwright && playwright install chromium --with-deps"
-pip = "pip install playwright && playwright install chromium"
+linux_apt = "apt-get update -qq && pip3 install playwright --break-system-packages && playwright install chromium --with-deps"
+pip = "pip install playwright --break-system-packages && playwright install chromium"
 manual_url = "https://playwright.dev/python/docs/intro"
 estimated_time = "3-5 min"
 steps = [

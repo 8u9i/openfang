@@ -3633,6 +3633,17 @@ pub async fn install_hand_deps(
             cmd_effective
         };
 
+        // On modern Debian/Ubuntu (PEP 668), bare `pip install` is blocked with
+        // "externally-managed-environment". Automatically inject --break-system-packages
+        // so hands work on Railway and other slim Linux containers.
+        let final_cmd = if !cfg!(windows) && !final_cmd.contains("--break-system-packages") {
+            final_cmd
+                .replace("pip3 install ", "pip3 install --break-system-packages ")
+                .replace("pip install ", "pip install --break-system-packages ")
+        } else {
+            final_cmd
+        };
+
         tracing::info!(hand = %hand_id, dep = %req.key, cmd = %final_cmd, "Auto-installing dependency");
 
         let output = match tokio::time::timeout(

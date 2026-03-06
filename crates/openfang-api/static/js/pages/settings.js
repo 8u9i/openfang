@@ -35,6 +35,11 @@ function settingsPage() {
     configDirty: {},
     configSaving: {},
 
+    // -- Redeploy state --
+    redeployLoading: false,
+    redeployResult: '',
+    redeployError: '',
+
     // -- Security state --
     securityData: null,
     secLoading: false,
@@ -188,9 +193,24 @@ function settingsPage() {
           uptime_seconds: status.uptime_seconds || 0,
           agent_count: status.agent_count || 0,
           default_provider: status.default_provider || '-',
-          default_model: status.default_model || '-'
+          default_model: status.default_model || '-',
+          railway_deploy_hook_configured: !!status.railway_deploy_hook_configured
         };
       } catch(e) { throw e; }
+    },
+
+    async triggerRedeploy() {
+      this.redeployLoading = true;
+      this.redeployResult = '';
+      this.redeployError = '';
+      try {
+        var res = await OpenFangAPI.post('/api/admin/redeploy', {});
+        this.redeployResult = res.message || 'Redeploy triggered successfully.';
+      } catch(e) {
+        this.redeployError = e.message || 'Failed to trigger redeploy.';
+      } finally {
+        this.redeployLoading = false;
+      }
     },
 
     async loadUsage() {

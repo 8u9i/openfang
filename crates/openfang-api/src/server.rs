@@ -412,6 +412,11 @@ pub async fn build_router(
             "/api/audit/verify",
             axum::routing::get(routes::audit_verify),
         )
+        // Admin endpoints
+        .route(
+            "/api/admin/redeploy",
+            axum::routing::post(routes::trigger_redeploy),
+        )
         // Live log streaming (SSE)
         .route("/api/logs/stream", axum::routing::get(routes::logs_stream))
         // Peer/Network endpoints

@@ -2440,6 +2440,9 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
               <div class="tab" :class="{ active: tab === 'active' }" @click="tab = 'active'; loadActive()">
                 Active <span class="badge badge-success" x-show="instances.length" x-text="instances.length" style="margin-left:4px"></span>
               </div>
+              <div class="tab" :class="{ active: tab === 'custom' }" @click="tab = 'custom'">
+                + Create
+              </div>
             </div>
 
             <!-- TAB: Available Hands -->
@@ -2541,6 +2544,29 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
                 <h4>No active hands</h4>
                 <p class="hint">Activate a hand from the Available tab to get started. Each hand spawns a dedicated agent.</p>
                 <button class="btn btn-primary mt-4" @click="tab = 'available'">Browse Hands</button>
+              </div>
+            </div>
+
+            <!-- TAB: Create Custom Hand -->
+            <div x-show="tab === 'custom'">
+              <div class="info-card" style="margin-bottom:16px">
+                <h4 style="margin:0 0 6px">Create a Custom Hand</h4>
+                <p class="text-dim" style="font-size:13px;margin:0">Paste a <code>HAND.toml</code> definition to install a custom Hand. Optionally include a <code>SKILL.md</code> knowledge file.</p>
+              </div>
+              <div class="card">
+                <div class="form-group">
+                  <label style="font-size:13px;font-weight:600">HAND.toml <span class="text-dim">(required)</span></label>
+                  <textarea class="form-input" x-model="customToml" rows="14" style="font-family:monospace;font-size:12px" placeholder='id = "my-hand"&#10;name = "My Custom Hand"&#10;description = "What this hand does"&#10;icon = "🤖"&#10;version = "1.0.0"&#10;&#10;[agent]&#10;system_prompt = "You are a helpful assistant."'></textarea>
+                </div>
+                <div class="form-group" style="margin-top:16px">
+                  <label style="font-size:13px;font-weight:600">SKILL.md <span class="text-dim">(optional)</span></label>
+                  <textarea class="form-input" x-model="customSkillMd" rows="6" style="font-family:monospace;font-size:12px" placeholder="# Domain knowledge injected at runtime...&#10;&#10;Add any context, reference material, or domain expertise here."></textarea>
+                </div>
+                <div class="text-xs" style="color:var(--danger);margin-top:8px" x-show="customCreateError" x-text="customCreateError"></div>
+                <div class="text-xs" style="color:var(--success,#4caf50);margin-top:8px" x-show="customCreateResult" x-text="'✓ Installed: ' + (customCreateResult && (customCreateResult.name || customCreateResult.id))"></div>
+                <div style="margin-top:16px">
+                  <button class="btn btn-primary" @click="createCustomHand()" :disabled="customCreateLoading || !customToml.trim()" x-text="customCreateLoading ? 'Installing…' : 'Install Hand'"></button>
+                </div>
               </div>
             </div>
 
@@ -3155,6 +3181,13 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
             <div class="card mt-4" x-show="sysInfo.default_provider">
               <div class="card-header">Default Model</div>
               <div class="card-meta" x-text="sysInfo.default_provider + ' : ' + sysInfo.default_model"></div>
+            </div>
+            <div class="card mt-4" x-show="sysInfo.railway_deploy_hook_configured">
+              <div class="card-header">Railway Deployment</div>
+              <p class="text-dim" style="font-size:13px;margin:4px 0 12px">Trigger a fresh deployment on Railway. Useful after changing environment variables or config.</p>
+              <button class="btn btn-primary" @click="triggerRedeploy()" :disabled="redeployLoading" x-text="redeployLoading ? 'Triggering…' : 'Redeploy Now'"></button>
+              <div class="text-xs" style="color:var(--success,#4caf50);margin-top:8px" x-show="redeployResult" x-text="redeployResult"></div>
+              <div class="text-xs" style="color:var(--danger);margin-top:8px" x-show="redeployError" x-text="redeployError"></div>
             </div>
           </div>
 

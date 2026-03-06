@@ -28,6 +28,37 @@ function handsPage() {
     detectedPlatform: 'linux',
     installPlatforms: {},
 
+    // ── Custom Hand Creation State ──────────────────────────────────────
+    customToml: '',
+    customSkillMd: '',
+    customCreateLoading: false,
+    customCreateError: '',
+    customCreateResult: null,
+
+    async createCustomHand() {
+      if (!this.customToml.trim()) {
+        this.customCreateError = 'HAND.toml content is required.';
+        return;
+      }
+      this.customCreateLoading = true;
+      this.customCreateError = '';
+      this.customCreateResult = null;
+      try {
+        var data = await OpenFangAPI.post('/api/hands/install', {
+          toml_content: this.customToml,
+          skill_content: this.customSkillMd
+        });
+        this.customCreateResult = data;
+        await this.loadData();
+        this.showToast('Hand "' + (data.name || data.id) + '" installed!');
+        this.customToml = '';
+        this.customSkillMd = '';
+      } catch(e) {
+        this.customCreateError = e.message || 'Failed to install hand';
+      }
+      this.customCreateLoading = false;
+    },
+
     async loadData() {
       this.loading = true;
       this.loadError = '';

@@ -548,6 +548,7 @@ pub async fn status(State(state): State<Arc<AppState>>) -> impl IntoResponse {
         "home_dir": state.kernel.config.home_dir.display().to_string(),
         "log_level": state.kernel.config.log_level,
         "network_enabled": state.kernel.config.network_enabled,
+        "railway_deploy_hook_configured": !std::env::var("RAILWAY_DEPLOY_HOOK_URL").unwrap_or_default().is_empty(),
         "agents": agents,
     }))
 }
@@ -3599,11 +3600,26 @@ pub async fn install_hand_deps(
             ("sh", "-c")
         };
 
-        // For winget on Windows, add --accept flags to avoid interactive prompts
-        let final_cmd = if cfg!(windows) && cmd.starts_with("winget ") {
-            format!("{cmd} --accept-source-agreements --accept-package-agreements")
+        // Strip `sudo` if the binary isn't present — Railway/Docker containers run
+        // as root, so elevation is both unnecessary and unavailable in slim images.
+        let cmd_effective: String = if !cfg!(windows) && cmd.starts_with("sudo ") {
+            let sudo_available = std::path::Path::new("/usr/bin/sudo").exists()
+                || std::path::Path::new("/bin/sudo").exists();
+            if !sudo_available {
+                tracing::debug!("sudo not found, stripping prefix from: {cmd}");
+                cmd[5..].to_string()
+            } else {
+                cmd.to_string()
+            }
         } else {
             cmd.to_string()
+        };
+
+        // For winget on Windows, add --accept flags to avoid interactive prompts
+        let final_cmd = if cfg!(windows) && cmd_effective.starts_with("winget ") {
+            format!("{cmd_effective} --accept-source-agreements --accept-package-agreements")
+        } else {
+            cmd_effective
         };
 
         tracing::info!(hand = %hand_id, dep = %req.key, cmd = %final_cmd, "Auto-installing dependency");
@@ -10111,6 +10127,49 @@ pub async fn comms_task(
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({"error": format!("Failed to post task: {e}")})),
+        ),
+    }
+}
+
+/// POST /api/admin/redeploy — Trigger a Railway redeployment via a deploy hook URL.
+///
+/// The `RAILWAY_DEPLOY_HOOK_URL` environment variable must be set to the deploy
+/// hook URL generated in the Railway dashboard (Service → Settings → Deploy Hooks).
+pub async fn trigger_redeploy(
+    State(_state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    let hook_url = match std::env::var("RAILWAY_DEPLOY_HOOK_URL") {
+        Ok(u) if !u.is_empty() => u,
+        _ => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({
+                    "error": "RAILWAY_DEPLOY_HOOK_URL is not configured. Create a deploy hook in Railway (Service → Settings → Deploy Hooks) and set this env var."
+                })),
+            );
+        }
+    };
+
+    let client = reqwest::Client::new();
+    match client.post(&hook_url).send().await {
+        Ok(resp) if resp.status().is_success() => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "status": "triggered",
+                "message": "A new deployment has been queued on Railway."
+            })),
+        ),
+        Ok(resp) => (
+            StatusCode::BAD_GATEWAY,
+            Json(serde_json::json!({
+                "error": format!("Railway returned status {}", resp.status())
+            })),
+        ),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({
+                "error": format!("Failed to contact Railway deploy hook: {e}")
+            })),
         ),
     }
 }
